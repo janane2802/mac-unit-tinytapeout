@@ -33,6 +33,19 @@
 
   "//": "Configuration docs: https://librelane.readthedocs.io/en/latest/reference/configuration.html",
 
+  "//": "Max slew margin - increased from the defaults (20/10) after the signoff STA showed",
+  "//": "real max-slew violations at the worst-case slow/hot/low-voltage corner (max_ss_100C_1v60).",
+  "//": "Combined with RUN_POST_GRT_DESIGN_REPAIR below, this halved violations at nom_ss_100C_1v60",
+  "//": "(44 -> 22) but did NOT clear the worst corner (max_ss_100C_1v60 stayed at 44/44).",
+  "//": "DRC/LVS/Antenna still pass; accepted as a known limitation - see docs/info.md.",
+  "DESIGN_REPAIR_MAX_SLEW_PCT": 40,
+  "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 25,
+
+  "//": "Enables the post-global-routing repair pass (experimental per LibreLane's own docs).",
+  "//": "Without this, the only design-repair step runs right after global placement (using",
+  "//": "estimated parasitics); see the comment above for how much this actually helped.",
+  "RUN_POST_GRT_DESIGN_REPAIR": true,
+
   "//": "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
   "//": "!!! DO NOT CHANGE ANYTHING BELOW THIS POINT !!!",
   "//": "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
