@@ -52,9 +52,15 @@ async def clear_and_mac_pulse(dut, a, b):
 
 
 async def read_acc_byte(dut, byte_select):
-    """Read a byte of the accumulator through uo_out without affecting state."""
+    """Read a byte of the accumulator through uo_out without affecting state.
+
+    The settle delay must exceed worst-case combinational propagation through
+    the byte_select mux. In RTL (delta-cycle) sim this is irrelevant; in
+    gate-level sim with UNIT_DELAY=#1, real per-gate delay applies, so this
+    stays generous (negligible next to the 10us clock period either way).
+    """
     dut.uio_in.value = make_uio(byte_select=byte_select)
-    await Timer(1, unit="ns")
+    await Timer(50, unit="ns")
     return int(dut.uo_out.value)
 
 
@@ -162,7 +168,7 @@ async def test_acc_clear(dut):
     while running < (1 << 16):
         await mac_pulse(dut, a, b)
         running += product
-    await Timer(1, unit="ns")
+    await Timer(50, unit="ns")
     assert overflow_bit(dut) == 1
 
     await clear_pulse(dut)

@@ -9,15 +9,67 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
-Explain how your project works
+An 8x4 multiply-accumulate (MAC) unit: a structural array multiplier feeding a
+16-bit accumulator.
+
+- **Multiplier** (`mult_array.v`): `operand_a[7:0] x operand_b[3:0]`, built as
+  an AND-gate partial-product array reduced by a ripple of adders (the
+  classic array-multiplier structure), producing a 12-bit product
+  combinationally.
+- **Accumulator** (`mac_accumulator.v`): a 16-bit register. On `mac_enable`,
+  adds the current product into the running total. On `acc_clear`, resets to
+  0; `acc_clear` takes priority if both are asserted the same cycle.
+  `overflow` latches high whenever an addition carries out past bit 15, and
+  stays high until the next accumulation that doesn't overflow, or a clear.
+- **Top level** (`project.v`): wires these together and muxes the 16-bit
+  accumulator onto the 8-bit `uo_out[7:0]` a byte at a time, selected by
+  `byte_select`.
+
+Pinout (also in the auto-generated table from `info.yaml`):
+
+| Pin | Signal |
+|---|---|
+| `ui_in[7:0]` | `operand_a[7:0]` |
+| `uio_in[7:4]` | `operand_b[3:0]` |
+| `uio_in[0]` | `mac_enable` (in) |
+| `uio_in[1]` | `acc_clear` (in) |
+| `uio_out[2]` | `overflow` (out) |
+| `uio_in[3]` | `byte_select` (in) — 0 = low byte, 1 = high byte |
+| `uo_out[7:0]` | selected accumulator byte |
+
+Note operand_b is 4 bits, not 8 — see the pin-budget note in
+`info.yaml`'s pinout comments: `uio` only has 8 pins total, and 4 of them
+are needed for `mac_enable`/`acc_clear`/`overflow`/`byte_select`, so a full
+8-bit second operand didn't fit without dropping one of those control
+signals.
 
 ## How to test
 
-Explain how to use your project
+1. Hold `rst_n` low for a few clock cycles, then release it.
+2. Drive `ui_in` with `operand_a` and `uio_in[7:4]` with `operand_b`.
+3. Pulse `uio_in[0]` (`mac_enable`) high for exactly one clock cycle to
+   accumulate `operand_a * operand_b` into the running total. Repeat with new
+   operands to build up a sum.
+4. Read the result: set `uio_in[3]` (`byte_select`) to 0 and read `uo_out`
+   for the low byte of the 16-bit accumulator, or set it to 1 for the high
+   byte.
+5. Check `uio_out[2]` (`overflow`) — it reads high if the last accumulation
+   carried out past bit 15, and clears on the next non-overflowing
+   accumulation or on `acc_clear`.
+6. Pulse `uio_in[1]` (`acc_clear`) high for one clock cycle to reset the
+   accumulator and `overflow` to 0. If `mac_enable` and `acc_clear` are both
+   high the same cycle, `acc_clear` wins.
+
+The full behavior above is exercised by the cocotb test suite in
+`test/test.py` (basic MAC, running sums, overflow assert/clear, acc_clear
+priority, byte_select switching) — run with `python test/run_tests.py` for
+RTL simulation, or `python test/run_tests_gl.py` for gate-level simulation
+against the hardened netlist. Both pass all 5 test cases.
 
 ## External hardware
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+None — all inputs and outputs are driven directly from the TT demo board's
+digital I/O.
 
 ## Known limitations
 
